@@ -1,0 +1,54 @@
+version: '3'
+
+services:
+  wordpress:
+    image: wordpress:6.4.1-php8.2-fpm
+    container_name: wordpress
+      # Best practise to create .env file and specify values for variables.
+    environment:
+      WORDPRESS_DB_HOST: ${WP_HOST}
+      WORDPRESS_DB_NAME: ${WP_NAME}
+      WORDPRESS_DB_USER: ${WP_USER}
+      WORDPRESS_DB_PASSWORD: ${WP_PASSWORD}
+    networks:
+      - app-network
+    depends_on:
+      - mysql_db
+    volumes:
+      - ./wpress_data:/var/www/html/
+
+  mysql_db:
+    image: mysql:latest
+    container_name: wpress_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - mysql-volume:/var/lib/mysql
+    networks:
+      - app-network
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    restart: always
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/wpress.conf
+      - ./server.crt:/etc/nginx/ssl/server.crt
+      - ./server.key:/etc/nginx/ssl/server.key
+      - ./wpress_data:/var/www/html/
+      - ./.htpasswd:/etc/nginx/.htpasswd
+    networks:
+      - app-network
+
+volumes:
+  mysql-volume:
+networks:
+  app-network:
+    driver: bridge
